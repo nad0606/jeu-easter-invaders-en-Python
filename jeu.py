@@ -16,10 +16,75 @@
 # ✅ Carottes bonus +1 vie (max 5 vies)
 # ✅ Textes flottants (score, vies)
 # ✅ Filtre sombre sur image de fond
+# ✅ Menu principal avec boutons
+# ✅ Scénario avec bulle de dialogue
+# ✅ Crédits
+# ✅ Formations d'ennemis (ligne, v, zigzag, aléatoire)
 
 import random
 import pygame
 pygame.init()
+
+
+# Definitions
+
+def ajouter_float(x, y, texte, couleur): # faire des textes flottants
+    floats.append({
+        "x": x, "y": y,
+        "texte": texte, # choix du text
+        "couleur": couleur, #choix couleur
+        "alpha": 400, # transparence
+        "vy": -1 # vitesse de montée
+    })
+
+
+def creer_ennemis(formation, nombre): #creation des formations
+    ennemis = []
+    types = ["oeuf", "cloche", "poulet"]
+
+    if formation == "ligne":
+        for i in range(nombre):
+            ennemis.append({
+                "x": 80 + i * ((800 - 160) // (nombre - 1 or 1)),
+                "y": 60,
+                "vivant": True,
+                "type": types[i % 3]
+                })
+            
+    elif formation == "v":
+        milieu = nombre // 2
+        for i in range(nombre):
+            x = 400 + (i - milieu) * 70
+            y = 60 + abs(i - milieu) * 20
+            ennemis.append({
+                "x": max(50, min(750, x)),
+                "y": y,
+                "vivant": True,
+                "type": types[i % 3]
+                })
+    
+    elif formation == 'zigzag':
+        for i in range(nombre):
+            ennemis.append({
+                "x": max(50, min(720, 80 + i * 80)),
+                "y": 60 + (i % 3) * 60,
+                "vivant": True,
+                "type": types[i % 3]
+            })
+
+    elif formation == "aleatoire":
+        for i in range (nombre):
+            ennemis.append({
+            "x": random.randint(50, 750),
+            "y": random.randint(30, 150),
+            "vivant": True,
+            "type": types[i % 3]
+            })
+
+    return ennemis
+
+   
+# Variables
 
 fenetre = pygame.display.set_mode((800,600), pygame.RESIZABLE) #Taille fenetre et pygame.RESIZABLE permet de pouvoir agrandir la fenetre
 pygame.display.set_caption("Easter Invaders")#titre de la fenetre du jeu
@@ -37,8 +102,6 @@ image = pygame.transform.scale(image, (120, 120)) # taille image
 lapin_x = 350 #position de depart du joueur horizontale
 lapin_y = 480 #position fixe du joueur verticale
 balles = [] #variable balle
-#liste des 3 ennemies et leur position et type
-ennemis = [{"x": 100, "y": 50, "vivant": True, "type": "poulet"}, {"x": 300, "y": 50, "vivant": True, "type": "cloche"}, {"x": 500, "y": 50, "vivant": True, "type": "oeuf"} ]
 #image de chaque ennemis et taille
 image_ennemi = pygame.image.load("soldatpoulet2.png")
 image_ennemi = pygame.transform.scale(image_ennemi, (80, 80))
@@ -67,25 +130,66 @@ floats = []
 font_float = pygame.font.SysFont("arial", 24)
 filtre = pygame.Surface((800, 600), pygame.SRCALPHA) # ajout d'un filtre sur image
 filtre.fill((0, 0, 0, 120)) # filtre noir avec transparence
+formations = ["ligne", "v", "zigzag", "aleatoire"] # formations des ennemis
+ennemis = creer_ennemis("ligne", 3)
+boutons = [ #création bouton menu principal
+    {"texte": "Jouer",     "x": 300, "y": 200, "w": 200, "h": 50},
+    {"texte": "Scénario", "x": 300, "y": 280, "w": 200, "h": 50},
+    {"texte": "Crédits",  "x": 300, "y": 360, "w": 200, "h": 50},
+]
+scenes = [ #scenario du jeu
+    {"image": "lapinfamille.jpg",
+     "texte": "il était une fois une famille de lapins heureuses..."},
+    {"image": "lapinkidnapping.jpg", 
+     "texte": "Mais un jour, Monsieur Poulet enleva Maman Lapine !"},
+    {"image": "lapinlapinedebutjeu.jpg", 
+     "texte": "Papa Lapin jura de la retrouver coûte que coûte..."},
+]
+scene_index = 0 
 
-def ajouter_float(x, y, texte, couleur): # faire des textes flottants
-    floats.append({
-        "x": x, "y": y,
-        "texte": texte, # choix du text
-        "couleur": couleur, #choix couleur
-        "alpha": 400, # transparence
-        "vy": -1 # vitesse de montée
-    })
+
 
 
 while running: #lancement du jeu et de la fenetre
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             running = False
-        if event.type == pygame.KEYDOWN:
-            if event.key == pygame.K_RETURN and etat == "accueil":
-                etat = "jeu"
-    
+
+        if event.type == pygame.MOUSEBUTTONDOWN:
+            mx, my = pygame.mouse.get_pos()  # position de la souris
+           #mise en place bouton et evenement du menu
+            clique_menu = False
+            for bouton in boutons:
+                if (bouton["x"] < mx < bouton["x"] + bouton["w"] and
+                    bouton["y"] < my < bouton["y"] + bouton["h"]):
+                    if bouton["texte"] == "Jouer": # chemin du bouton
+                        etat = "scenario"
+                        scene_index = 0                     
+                    elif bouton["texte"] == "Scénario":
+                        etat = "scenario_menu" #scenario et retour menu principal
+                        scene_index = 0
+                    elif bouton["texte"] == "Crédits":
+                        etat = "credits"
+
+            if not clique_menu:
+                if etat in ("scenario", "scenario_menu"):
+                    if 550 < mx < 730 and 555 < my < 595:
+                        scene_index += 1
+                        if scene_index >= len(scenes):
+                            etat = "jeu" if etat == "scenario" else "accueil"
+                            scene_index = 0
+                    if 60 < mx < 240 and 555 < my < 595:
+                        etat = "jeu" if etat == "scenario" else "accueil"
+                        scene_index = 0  
+
+                if etat == "credits":
+                    if 300 < mx < 500 and 430 < my < 480:
+                        etat = "accueil"
+
+            if event.type == pygame.KEYDOWN:
+                        if event.key == pygame.K_ESCAPE and etat == "credits":
+                            etat = "accueil"
+        
     fenetre.blit(image_fond_accueil, (0, 0))  #remplir le fond avec image
     fenetre.blit(filtre, (0, 0))
     
@@ -111,19 +215,26 @@ while running: #lancement du jeu et de la fenetre
 
 
     if etat == "accueil":
-        texte = font.render("EASTER INVADERS", True, (156, 237, 74))#texte 1
+        texte = font.render("EASTER INVADERS", True, (99, 235, 149))#texte 1
         x = (800 - texte.get_width()) // 2 # larguer de la fenetre - largeur du texte pour centrer le texte
-        fenetre.blit(texte, (x, 200)) # emplacement du texte 1 centré
-        texte2 = font_texte2.render("Appuie sur ENTER pour jouer !", True, (255, 255, 255)) # text 2
-        x = (800 - texte2.get_width()) // 2 
-        fenetre.blit(texte2, (x, 300)) #emplacement texte 2
-
-    elif etat == "jeu":
-
-        
-        fenetre.blit(image, (lapin_x, lapin_y))#position de l'image defini plus haut
-        
-        temps_actuel = pygame.time.get_ticks() # donne temps écoulé en milliseconde tout comme Date.now()
+        fenetre.blit(texte, (x, 100)) # emplacement du texte 1 centré
+        mx, my = pygame.mouse.get_pos()
+        for bouton in boutons:
+        # changer couleur si souris dessus
+            survol = (bouton["x"] < mx < bouton["x"] + bouton["w"] and
+                  bouton["y"] < my < bouton["y"] + bouton["h"])
+            couleur = (27, 125, 59) if survol else (216, 235, 223)
+            pygame.draw.rect(fenetre, couleur, 
+                        (bouton["x"], bouton["y"], bouton["w"], bouton["h"]), 
+                        border_radius=10)
+            t = font.render(bouton["texte"], True, (99, 235, 149)) #couleur texte bouton
+            tx = bouton["x"] + (bouton["w"] - t.get_width()) // 2
+            ty = bouton["y"] + (bouton["h"] - t.get_height()) // 2
+            fenetre.blit(t, (tx, ty))
+       
+    elif etat == "jeu": #si on appui sur jouer
+        fenetre.blit(image, (lapin_x, lapin_y))    #position de l'image defini plus haut
+        temps_actuel = pygame.time.get_ticks()# donne temps écoulé en milliseconde tout comme Date.now()
 
         touchs = pygame.key.get_pressed()#choix des touches de jeu
 
@@ -134,7 +245,7 @@ while running: #lancement du jeu et de la fenetre
         if touchs[pygame.K_SPACE] and temps_actuel - dernier_tir > 400: #lapin tire les balles avec espace et le temps de recharge entre chaque balle et de 0,4 sec
             balles.append({"x": lapin_x + 50, "y": lapin_y})
             dernier_tir = temps_actuel
-
+       
 
         for balle in balles:#determine les balles
             balle["y"] -= 7 #chaque balle monte de 7px
@@ -154,7 +265,7 @@ while running: #lancement du jeu et de la fenetre
                         balles = [b for b in balles if b != balle] #evite d'utiliser  balles.remove(balle) cette liste est plus fiable pour faire disparaitre les balles 
                         if ennemi["type"] == "oeuf": #score selon ennemi touché
                             score += 100
-                            ajouter_float(ennemi["x"], ennemi["y"], "+ 100 points", (126, 245, 5))
+                            ajouter_float(ennemi["x"], ennemi["y"], "+ 100 points", (126, 245, 5)) # texte flottant texte et couleur
                         elif ennemi["type"] == "cloche":
                             score += 200
                             ajouter_float(ennemi["x"], ennemi["y"], "+ 200 points", (126, 245, 5))
@@ -166,7 +277,6 @@ while running: #lancement du jeu et de la fenetre
              vivants = [e for e in ennemis if e["vivant"]]
              if vivants: # si ennemi vivant il tire champignon
                 tireur = random.choice(vivants) # tireur aléatoire avec random
-                print(f"Tireur : {tireur['type']} x={tireur['x']}")
                 champignons.append({
                     "x": tireur["x"] + 30,
                     "y": tireur ["y"] + 60,
@@ -239,14 +349,18 @@ while running: #lancement du jeu et de la fenetre
 
         if all(not e["vivant"] for e in ennemis): #passage de niveau
             niveau += 1
-            texte_niveau = font.render(f"Niveau {niveau} !", True, (48, 117, 74))
+            champignons = []        
+            carotte = []            
+            dernier_champignon = 0  
+            derniere_carotte = 0
+            texte_niveau = font.render(f"Niveau {niveau} !", True, (99, 235, 149))
             x = (800 - texte_niveau.get_width()) // 2 
             fenetre.blit(texte_niveau, (x, 300))
             pygame.display.flip()
             pygame.time.wait(2000)
             ennemis = [] #reinitialise les ennemis en rajoutant 1 de plus à chaque niveau
-            for i in range(niveau + 2): #ajoute des ennemis à chaque niveau
-                ennemis.append({"x": 80 + i * 100, "y": 50, "vivant": True, "type": types[i % 3]}) # alterne entre les 3 ennemis avec modulo
+            formation = formations[(niveau - 1) % len(formations)]
+            ennemis = creer_ennemis(formation, niveau + 2)
 
 
 
@@ -261,19 +375,73 @@ while running: #lancement du jeu et de la fenetre
             vies = 3
             lapin_x = 350
             balles = []
-            ennemis = [
-                {"x": 100, "y": 50, "vivant": True, "type": "poulet"},
-                {"x": 300, "y": 50, "vivant": True, "type": "cloche"},
-                {"x": 500, "y": 50, "vivant": True, "type": "oeuf"}
-                 ]
+            ennemis = creer_ennemis("ligne", 3)
+            champignons = []        
+            carotte = []            
+            dernier_champignon = 0  
+            derniere_carotte = 0
             etat = "accueil" #jeu redemarre à accueil
             
     
         texte_vies = font_emoji.render("❤️" * vies, True, (255, 0, 0)) #affichage des vie avec police compatible emojis
         fenetre.blit(texte_vies, (650, 10)) #emplacement de l'affichage des vie    
+        
+    elif etat in ("scenario", "scenario_menu"):
+        scene = scenes[scene_index]
+        img_scene = pygame.image.load(scene["image"])
+        img_scene = pygame.transform.scale(img_scene, (800, 600))
+        fenetre.blit(img_scene, (0, 0))
+        fenetre.blit(filtre, (0, 0))
+
+        # bulle de dialogue
+        pygame.draw.rect(fenetre, (218, 237, 225), (40, 420, 720, 120), border_radius=15)
+        pygame.draw.rect(fenetre, (9, 79, 35), (40, 420, 720, 120), 2, border_radius=15)
+
+        # texte dans la bulle avec retour à la ligne automatique
+        mots = scene["texte"].split(" ")
+        ligne = ""
+        y_texte = 445
+        for mot in mots:
+            test = ligne + mot + " "
+            if font_float.size(test)[0] > 680:
+                t = font_float.render(ligne, True, (9, 79, 35))
+                fenetre.blit(t, (60, y_texte))
+                ligne = mot + " "
+                y_texte += 28
+            else:
+                ligne = test
+        t = font_float.render(ligne, True, (9, 79, 35))
+        fenetre.blit(t, (60, y_texte))
+
+        # boutons suivant et passer
+        pygame.draw.rect(fenetre, (218, 237, 225), (550, 555, 180, 40), border_radius=8)
+        t_suiv = font_float.render("Suivant", True, (9, 79, 35))
+        fenetre.blit(t_suiv, (555, 563))
+
+        pygame.draw.rect(fenetre, (218, 237, 225), (60, 555, 180, 40), border_radius=8)
+        t_pass = font_float.render("Passer", True, (9, 79, 35))
+        fenetre.blit(t_pass, (65, 563))
+
+    elif etat == "credits":
+        texte_c = font.render("🐰 Easter Invaders 🐰", True, (99, 235, 149))
+        x = (800 - texte_c.get_width()) // 2
+        fenetre.blit(texte_c, (x, 150))
+        texte_c2 = font.render("Créé par HAMDOUN Nada", True, (255, 255, 255))
+        x = (800 - texte_c2.get_width()) // 2
+        fenetre.blit(texte_c2, (x, 250))
+        texte_c3 = font.render("Python / Pygame 2026", True, (255, 255, 255))
+        x = (800 - texte_c3.get_width()) // 2
+        fenetre.blit(texte_c3, (x, 320))
+        pygame.draw.rect(fenetre, (218, 237, 225), (300, 430, 200, 50), border_radius=10) # bouton retour menu de crédits
+        t_retour = font_float.render("← Retour au menu", True, (9, 79, 35))
+        tx = 300 + (200 - t_retour.get_width()) // 2
+        fenetre.blit(t_retour, (tx, 443))
+                
+        
 
     pygame.display.flip()
     horloge.tick(60)
+     
 
     
 
