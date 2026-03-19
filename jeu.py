@@ -11,7 +11,13 @@
 # ✅ Couleurs personnalisées, couleur RGB choisi sur colorcodes
 # ✅ Niveau suivant avec ennemis variés
 # ✅ Réinitialisation complète au Game Over
+# ✅ Champignons ennemis avec tireur aléatoire
+# ✅ Collision champignon/lapin avec halo rouge
+# ✅ Carottes bonus +1 vie (max 5 vies)
+# ✅ Textes flottants (score, vies)
+# ✅ Filtre sombre sur image de fond
 
+import random
 import pygame
 pygame.init()
 
@@ -27,19 +33,19 @@ font_texte2 = pygame.font.Font("fonttitre2.ttf", 50) #ecrire le texte 2, taille 
 font_emoji = pygame.font.SysFont("segoe ui emoji", 30) #appel une police avec emoji
 
 image = pygame.image.load("lapinface.png") #inserer une image 
-image = pygame.transform.scale(image, (100, 100)) # taille image
+image = pygame.transform.scale(image, (120, 120)) # taille image
 lapin_x = 350 #position de depart du joueur horizontale
-lapin_y = 500 #position fixe du joueur verticale
+lapin_y = 480 #position fixe du joueur verticale
 balles = [] #variable balle
 #liste des 3 ennemies et leur position et type
 ennemis = [{"x": 100, "y": 50, "vivant": True, "type": "poulet"}, {"x": 300, "y": 50, "vivant": True, "type": "cloche"}, {"x": 500, "y": 50, "vivant": True, "type": "oeuf"} ]
 #image de chaque ennemis et taille
 image_ennemi = pygame.image.load("soldatpoulet2.png")
-image_ennemi = pygame.transform.scale(image_ennemi, (60, 60))
+image_ennemi = pygame.transform.scale(image_ennemi, (80, 80))
 image_ennemi1 = pygame.image.load("soldatcloche.png")
-image_ennemi1 = pygame.transform.scale(image_ennemi1, (60, 60))
+image_ennemi1 = pygame.transform.scale(image_ennemi1, (80, 80))
 image_ennemi2 = pygame.image.load("soldatoeuf3.png")
-image_ennemi2 = pygame.transform.scale(image_ennemi2, (60, 60))
+image_ennemi2 = pygame.transform.scale(image_ennemi2, (80, 80))
 score = 0 # variable score
 vies = 3 #variable vie
 dernier_tir = 0 #gere l'interval entre chaque tir
@@ -48,9 +54,28 @@ niveau = 1
 types = ["oeuf", "cloche", "poulet"]
 image_fond_accueil = pygame.image.load("lapinfamille.jpg")
 image_fond_accueil = pygame.transform.scale(image_fond_accueil, (800, 600))  # adapte à la taille de la fenêtre
+champignons = [] #variable champignon
+dernier_champignon = 0 #gere l'intervalle entre chaque champignon
+hit_effet = 0 # defini l'halo rouge autour de la fenetre
+image_champignon = pygame.image.load("champignon.png")
+image_champignon = pygame.transform.scale(image_champignon, (50, 50))
+carotte = [] # variable carotte
+derniere_carotte = 0 #gere l'intervalle entre les carottes
+image_carotte = pygame.image.load("carotte.png")
+image_carotte = pygame.transform.scale(image_carotte, (50, 50))
+floats = []
+font_float = pygame.font.SysFont("arial", 24)
+filtre = pygame.Surface((800, 600), pygame.SRCALPHA) # ajout d'un filtre sur image
+filtre.fill((0, 0, 0, 120)) # filtre noir avec transparence
 
-
-
+def ajouter_float(x, y, texte, couleur): # faire des textes flottants
+    floats.append({
+        "x": x, "y": y,
+        "texte": texte, # choix du text
+        "couleur": couleur, #choix couleur
+        "alpha": 400, # transparence
+        "vy": -1 # vitesse de montée
+    })
 
 
 while running: #lancement du jeu et de la fenetre
@@ -62,9 +87,31 @@ while running: #lancement du jeu et de la fenetre
                 etat = "jeu"
     
     fenetre.blit(image_fond_accueil, (0, 0))  #remplir le fond avec image
+    fenetre.blit(filtre, (0, 0))
+    
+    nouveaux_floats = []
+
+    for f in floats:
+        f["y"] += f["vy"]
+        f["alpha"] -= 6 # disparition progressive
+        if f["alpha"] > 0:
+            surface = font_float.render(f["texte"], True, f["couleur"])
+            surface.set_alpha(f["alpha"])
+            fenetre.blit(surface, (f["x"], f["y"]))
+            nouveaux_floats.append(f)
+    floats = nouveaux_floats
+
+
+    if hit_effet > 0: # dessin du halo
+        hit_effet -= 1
+        alpha = hit_effet / 20 
+        surface_rouge = pygame.Surface((800, 600), pygame.SRCALPHA) # defini la taille du halo et la transparence
+        pygame.draw.rect(surface_rouge, (255, 0, 0, int(alpha * 180)), (0, 0, 800, 600), 40) # couleur et epaisseur du halo
+        fenetre.blit(surface_rouge, (0, 0))
+
 
     if etat == "accueil":
-        texte = font.render("EASTER INVADERS", True, (48, 117, 74))#texte 1
+        texte = font.render("EASTER INVADERS", True, (156, 237, 74))#texte 1
         x = (800 - texte.get_width()) // 2 # larguer de la fenetre - largeur du texte pour centrer le texte
         fenetre.blit(texte, (x, 200)) # emplacement du texte 1 centré
         texte2 = font_texte2.render("Appuie sur ENTER pour jouer !", True, (255, 255, 255)) # text 2
@@ -107,11 +154,65 @@ while running: #lancement du jeu et de la fenetre
                         balles = [b for b in balles if b != balle] #evite d'utiliser  balles.remove(balle) cette liste est plus fiable pour faire disparaitre les balles 
                         if ennemi["type"] == "oeuf": #score selon ennemi touché
                             score += 100
+                            ajouter_float(ennemi["x"], ennemi["y"], "+ 100 points", (126, 245, 5))
                         elif ennemi["type"] == "cloche":
                             score += 200
+                            ajouter_float(ennemi["x"], ennemi["y"], "+ 200 points", (126, 245, 5))
                         elif ennemi["type"] == "poulet":
                             score += 300
+                            ajouter_float(ennemi["x"], ennemi["y"], "+ 300 points", (126, 245, 5))
 
+        if temps_actuel - dernier_champignon > 2000: #champignon toutes les 2 sec mini
+             vivants = [e for e in ennemis if e["vivant"]]
+             if vivants: # si ennemi vivant il tire champignon
+                tireur = random.choice(vivants) # tireur aléatoire avec random
+                print(f"Tireur : {tireur['type']} x={tireur['x']}")
+                champignons.append({
+                    "x": tireur["x"] + 30,
+                    "y": tireur ["y"] + 60,
+                    "w": 30, "h": 30
+                    })
+                dernier_champignon = temps_actuel
+
+        for champ in champignons:
+            champ["y"] += 3
+            fenetre.blit(image_champignon, (champ["x"], champ["y"])) #image du champignon
+                            
+        champignons = [c for c in champignons if c["y"] < 600] #supprime champignon hors fenetre
+
+        for champ in champignons: # collision entre lapin et champignon - 1 vie
+            if (champ["x"] < lapin_x + 100 and
+                champ["x"] + 30 > lapin_x and
+                champ["y"] < lapin_y + 100 and
+                champ["y"] + 30 > lapin_y):
+                vies -= 1
+                ajouter_float(lapin_x + 50, lapin_y, "-1 vie !", (245, 17, 17))
+                hit_effet = 20 # niveau d'effet
+                champignons = [c for c in champignons if c != champ]
+                break
+
+        if temps_actuel - derniere_carotte > 8000:
+            carotte.append({
+                "x": random.randint(50, 750),
+                "y": -60
+            })
+            derniere_carotte = temps_actuel
+
+        for c in carotte:
+            c["y"] += 2
+            fenetre.blit(image_carotte, (c["x"], c["y"]))
+
+        carotte = [c for c in carotte if c["y"] < 600]
+                        
+
+        for carottes in carotte: # collision carotte
+            if (carottes["x"] < lapin_x + 100 and
+                carottes["x"] + 30 > lapin_x and
+                carottes["y"] < lapin_y + 100 and
+                carottes["y"] + 30 > lapin_y):
+                vies = min(vies + 1, 5) #    # ajoute une vie mais pas plus de 5 vie max
+                ajouter_float(lapin_x + 50, lapin_y, "+1 vie", (126, 245, 5))
+                carotte = [c for c in carotte if c != carottes]
 
 
         text_score = font.render(f"score : {score}", True, (255, 255, 255)) #affichage du score

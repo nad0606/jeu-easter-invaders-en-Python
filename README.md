@@ -1,4 +1,4 @@
-# 🐰 EEASTER INVADERS — Python / Pygame
+# 🐰 EASTER INVADERS — Python / Pygame
 
 > Création en Python/Pygame d'un jeu de type Space Invaders sur le thème de Pâques,  
 > initialement développé en HTML5/CSS3/JavaScript disponible sur mon GITHUB.
