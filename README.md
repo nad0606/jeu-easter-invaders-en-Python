@@ -9,11 +9,16 @@ Easter Invaders est un jeu de tir inspiré de Space Invaders.
 Le joueur incarne Papa Lapin qui doit défendre sa famille contre des vagues d'ennemis de Pâques.
 
 - **3 types d'ennemis** : Œuf (100 pts), Cloche (200 pts), Poulet (300 pts)
-- **Système de vies** : 3 vies représentées par des cœurs ❤️
-- **Niveaux progressifs** : chaque niveau ajoute des ennemis supplémentaires (en cours d'amélioration)
+- **Système de vies** : jusqu'à 5 vies représentées par des cœurs ❤️
+- **Niveaux progressifs** : Niveaux illimités, chaque niveau ajoute des ennemis avec formations variées
 - **Délai de tir** : rechargement de 400ms entre chaque balle
-- **Écran d'accueil** et **Game Over** avec réinitialisation complète (menu en cours de création)
-
+- **Écran d'accueil** et **Game Over** avec réinitialisation complète
+- **Menu complet** : Jouer, Scénario, Commandes, Scores, Crédits
+- **Scénario narratif** : 3 scènes avec bulle de dialogue avant le jeu
+- **High scores** : top 3 enregistré avec pseudo (fichier JSON)
+- **Pause** : touche P pour mettre le jeu en pause
+- **Bonus** : carottes (+1 vie), panier de carottes (+5 vies), double tir (20 sec)
+- **Malus** : champignons lancés par les ennemis (-1 vie)
 ---
 
 ## 🛠️ Technologies utilisées
@@ -22,6 +27,7 @@ Le joueur incarne Papa Lapin qui doit défendre sa famille contre des vagues d'e
 |---|---|
 | Python 3.11 | Langage principal |
 | Pygame 2.6 | Moteur graphique et gestion des événements |
+| JSON | Sauvegarde des meilleurs scores |
 
 
 ## 🚀 Installation et lancement
@@ -45,13 +51,56 @@ py -3.11 jeu.py
 
 
 ## 🕹️ Contrôles
-
-| Touche | Action |
+ 
+| Touche / Action | Effet |
 |---|---|
 | ← / → | Déplacer le lapin |
+| Souris | Déplacer le lapin |
 | Espace | Tirer |
-| Entrée | Démarrer / Valider |
+| Clic gauche | Tirer |
+| P | Pause |
+| ECHAP | Quitter vers le menu |
 
+## 👾 Ennemis et formations
+ 
+| Type | Points |
+|---|---|
+| Œuf | 100 pts |
+| Cloche | 200 pts |
+| Poulet | 300 pts |
+ 
+**4 formations** : ligne, V, zigzag, aléatoire — les formations s'adaptent automatiquement pour ne jamais dépasser les bords de la fenêtre.
+ 
+Les ennemis **lancent des champignons** aléatoirement vers le joueur.
+ 
+---
+ 
+## ⚡ Bonus et Malus
+ 
+| Objet | Effet | Fréquence |
+|---|---|---|
+| 🥕 Carotte | +1 vie (max 5) | toutes les 20 sec |
+| 🧺 Panier de carottes | +5 vies (max 5) | toutes les 45 sec |
+| 🔥 Double tir | 2 balles simultanées pendant 20 sec | aléatoire 60-120 sec |
+| 🍄 Champignon | -1 vie | toutes les 3 sec |
+ 
+---
+ 
+## 🏆 High Scores
+ 
+Les 3 meilleurs scores sont sauvegardés dans un fichier `scores.json`.  
+À chaque Game Over, le joueur peut entrer son pseudo pour apparaître au classement.
+ 
+---
+ 
+## 🎬 Menu principal
+ 
+- **Jouer** → Scénario → Page commandes → Jeu
+- **Scénario** → Voir uniquement le scénario
+- **Commandes** → Contrôles, ennemis, bonus/malus
+- **Scores** → Top 3 des meilleurs scores
+- **Crédits** → Auteure du jeu
+ 
 
 ## 🔄 Du JavaScript au Python — Ce que j'ai appris
 
@@ -71,17 +120,18 @@ initialement développé en HTML5 Canvas / JavaScript / CSS.
 | Stocker les ennemis | tableau d'objets `[]` | liste de dictionnaires `[]` |
 | Collisions | fonction `hit(a, b)` manuelle | même logique rectangulaire |
 | Texte à l'écran | `ctx.fillText()` | `font.render()` + `blit()` |
-
+| Sauvegarde scores | `localStorage` | fichier `JSON` |
+ 
 ### Ce qui change vraiment
-
+ 
 En JavaScript, le navigateur gère le rendu automatiquement.  
 En Python avec Pygame, **tout est manuel** :
 - On efface l'écran à chaque frame avec `fill()`
 - On redessine tout dans l'ordre
 - On appelle `flip()` pour afficher le résultat
-
+ 
 Cela permet de comprendre exactement ce qui se passe à chaque image du jeu.
-
+ 
 ### Ce que j'ai appris en Python
 
 - Les **variables**, **conditions**, **boucles** et **fonctions** de base
