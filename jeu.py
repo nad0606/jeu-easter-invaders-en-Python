@@ -32,6 +32,10 @@
 # ✅ Quitter avec ECHAP
 # ✅ Souris bloquée dans la fenêtre pendant le jeu
 # ✅ Légende ECHAP/P affiché pendant le jeu
+# ✅ Ennemis visent le joueur lapin
+# ✅ Ennemis esquivent balles du joueur lapin
+# ✅ Difficuté evolutive en fonction du skill_score du joueur, esquive plus reactive, descente des ennelis plus rapide et 2 attaquent en meme temps.
+# ✅ Affichage mode expert si joueur depasse skill_score > 2
 
 import random # permet aléatoire 
 import pygame # permet de creer le jeu
@@ -155,6 +159,8 @@ pygame.mouse.set_visible(True)
 souris_bouge = False
 pseudo = ""
 saisie_active = False
+skill_score = 1.0  # 1.0 = normal < 1.0 = facile > 1.0 = dur
+delai_tir = 3000 / skill_score # délai tir reduit ou augmenté selon skill_score
 
 ##### STYLES TEXTES #####
 font = pygame.font.Font("fonttitre1.ttf", 40) #ecriture epaisse et ronde
@@ -221,6 +227,10 @@ scene_index = 0
 hit_effet = 0 # defini l'halo rouge autour de la fenetre
 filtre = pygame.Surface((800, 600), pygame.SRCALPHA) # ajout d'un filtre sur image
 filtre.fill((0, 0, 0, 140)) # filtre noir avec transparence
+diff_effet_alpha = 0  # Intensité du halo de difficulté
+surface_diff = pygame.Surface((800, 600), pygame.SRCALPHA)
+
+
 
 
 ###### PERSONNAGES ET OBJETS DU JEU #####
@@ -359,8 +369,8 @@ while running: #lancement du jeu et de la fenetre
         
     fenetre.blit(image_fond_accueil, (0, 0))  #remplir le fond avec image
     if etat not in ("scenario", "scenario_menu"):  #  filtre tout sauf scenario
-        fenetre.blit(filtre, (0, 0))       
-
+        fenetre.blit(filtre, (0, 0))     
+    
 
          ######## TEXTES FLOTTANTS #########
                      
@@ -384,6 +394,14 @@ while running: #lancement du jeu et de la fenetre
         surface_rouge = pygame.Surface((800, 600), pygame.SRCALPHA) # defini la taille du halo et la transparence
         pygame.draw.rect(surface_rouge, (255, 0, 0, int(alpha * 180)), (0, 0, 800, 600), 40) # couleur et epaisseur du halo
         fenetre.blit(surface_rouge, (0, 0))
+
+    if diff_effet_alpha > 0: # halo difficulté
+        couleur_halo = (255, 140, 0, diff_effet_alpha)
+        surface_diff = pygame.Surface((800, 600), pygame.SRCALPHA)
+        pygame.draw.rect(surface_diff, couleur_halo, (0, 0, 800, 600), 25) # couleur et épaisseur
+        fenetre.blit(surface_diff, (0, 0))
+        t_hard = font_petit_gras.render("MODE EXPERT", True, (255, 140, 0))
+        fenetre.blit(t_hard, (10, 50)) # texte difficulté
 
           ######## MENU PRINCIPAL #########
 
@@ -513,6 +531,13 @@ while running: #lancement du jeu et de la fenetre
                         balle["y"] < ennemi["y"] + 60 and
                         balle["y"] + 12 > ennemi["y"] ):
                         ennemi["vivant"] = False #ennemi tué
+                        skill_score += 0.05 # augmentation de la difficulté quand un ennemi est mort
+                        skill_score = min(skill_score, 3.0) #limite de difficulté
+                        if skill_score > 2.0: # halo s'active a skill_score > 2
+                            diff_effet_alpha = 100 
+                        else:
+                            diff_effet_alpha = 0
+                        
                         balles = [b for b in balles if b != balle] #evite d'utiliser  balles.remove(balle) cette liste est plus fiable pour faire disparaitre les balles 
                         if ennemi["type"] == "oeuf": #score selon ennemi touché
                             score += 100
@@ -528,20 +553,29 @@ while running: #lancement du jeu et de la fenetre
               ######## CHAMPIGNONS #########
 
               ######## TIR DE CHAMPIGNONS #########
-
-        if temps_actuel - dernier_champignon > 3000: #champignon toutes les 2 sec mini
+        
+        if temps_actuel - dernier_champignon > delai_tir: #champignon toutes les 3 sec en fonction du skill_score
              vivants = [e for e in ennemis if e["vivant"]]
              if vivants: # si ennemi vivant il tire champignon
-                tireur = random.choice(vivants) # tireur aléatoire avec random
+                nb_tireurs = 1 if skill_score < 2 else 2 # si le joueur a un skill_score elevé 2 ennemis tirent
+                for _ in range(nb_tireurs):
+                    tireur = random.choice(vivants) # tireur aléatoire avec random
+                    dx = (lapin_x + 50) - (tireur["x"] + 30)
+                    dy = (lapin_y + 50) - (tireur["y"] + 30)
+                distance = max(1, (dx**2 + dy**2) ** 0.5)
+
                 champignons.append({
                     "x": tireur["x"] + 30,
-                    "y": tireur ["y"] + 60,
-                    "w": 30, "h": 30
-                    })
+                    "y": tireur["y"] + 60,
+                    "w": 30, "h": 30,
+                    "vx": dx / distance * 3,
+                    "vy": dy / distance * 3
+                })
                 dernier_champignon = temps_actuel
 
         for champ in champignons:
-            champ["y"] += 3
+            champ["x"] += champ["vx"]
+            champ["y"] += champ["vy"]
             fenetre.blit(image_champignon, (champ["x"], champ["y"])) #image du champignon
                             
         champignons = [c for c in champignons if c["y"] < 600] #supprime champignon hors fenetre
@@ -554,6 +588,8 @@ while running: #lancement du jeu et de la fenetre
                 champ["y"] < lapin_y + 100 and
                 champ["y"] + 30 > lapin_y):
                 vies -= 1
+                skill_score -= 0.15 # Le joueur se fait toucher alors baisse la difficulté
+                skill_score = max(skill_score, 0.5) # baisse max de la difficulté
                 ajouter_float(lapin_x + 50, lapin_y, "-1 vie !", (245, 17, 17))
                 hit_effet = 20 # niveau d'effet
                 champignons = [c for c in champignons if c != champ]
@@ -690,7 +726,21 @@ while running: #lancement du jeu et de la fenetre
 
         for ennemi in ennemis: #deplacement des ennemis
             if ennemi["vivant"]:
-                ennemi["y"] += 0.4 #vitesse de descente des ennemi en Y "verticale" à modifier celon les niveaux
+                ennemi["y"] += (0.1 * skill_score) #vitesse de descente des ennemi en Y "verticale" modifié selon le skill_score
+                # esquive des balles
+                for b in balles:
+                    if abs(ennemi["x"] - b["x"]) < 40 and 0 < (b["y"] - ennemi["y"]) < (150 * skill_score): #plus skill_score elevé plus l'ennemi voit les balles arriver de loin
+                        direction = random.choice([-5, 5]) # esquive aleatoire ecart +- 5px
+                        vitesse_esquive = 5 * skill_score #esquive plus rapide selon skill_score
+
+                        ennemi["x"] += direction * vitesse_esquive
+
+                        if ennemi["x"] < 0: ennemi["x"] = 0
+                        if ennemi["x"] > 750: ennemi["x"] = 750 #ennemis ne sortent pas de la fenetre pendant l'esquive
+
+
+
+
 
         ######## NIVEAUX #########
 
