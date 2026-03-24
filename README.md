@@ -20,6 +20,7 @@ Le joueur incarne Papa Lapin qui doit défendre sa famille contre des vagues d'e
 - **Bonus** : carottes (+1 vie), panier de carottes (+5 vies), double tir (20 sec)
 - **Malus** : champignons lancés par les ennemis (-1 vie)
 ---
+- **GAME AI** : difficuté progressive en fonction du niveau du joueur
 
 ## 🛠️ Technologies utilisées
 
